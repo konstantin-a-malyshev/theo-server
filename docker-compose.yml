@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    container_name: quotation-importer-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - janusgraph
+
+  # Dev-friendly JanusGraph + Gremlin Server.
+  # If you already have a running JanusGraph elsewhere, you can remove this service
+  # and just point GREMLIN_URL to your existing Gremlin Server endpoint.
+  janusgraph:
+    image: janusgraph/janusgraph:latest
+    container_name: quotation-importer-janusgraph
+    ports:
+      - "8182:8182"
+    environment:
+      - JANUS_PROPS_TEMPLATE=conf/janusgraph-inmemory.properties
