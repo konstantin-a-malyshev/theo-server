@@ -1,68 +1,116 @@
 # theo-server
 
-## Data model
+HTTP REST API service for importing *quotation* vertices into a JanusGraph database (via Gremlin Server).
 
-Vertices:
-- book: `caption` (string), `name` (string)
-- quotation: `caption` (string), `text` (string), `book` (string), `position` (string), `importIndex` (int)
+## Features
 
-Edges:
-- `contains`: book -> quotation
+- API key protection via `X-API-Key` header.
+- Get the highest imported quotation index.
+- Import a quotation (idempotency by `importIndex`):
+  - If a quotation with the same `importIndex` already exists, returns **409 Conflict** and does **not** overwrite.
+  - If a book with caption equal to `quotation.book` exists, connects it to the quotation with `contains`.
+  - Otherwise creates the book (with empty `name`) and then connects it.
+
+## Data model assumptions
+
+The graph uses vertices with these properties:
+
+- **Book**: `type="book"`, `caption`, `name`
+- **Quotation**: `type="quotation"`, `caption`, `text`, `book`, `position`, `importIndex`, `status`
+
+Edge: `contains` from book -> quotation.
+
+The service queries by the `type` property (it does not rely on vertex labels).
+
+> **Tip (recommended for production):** create a unique composite index on `Quotation.importIndex` in JanusGraph to prevent
+> race conditions when multiple imports happen concurrently.
+
+## Configuration
+
+Environment variables:
+
+- `THEO_API_KEY` (required): the only accepted API key.
+- `GREMLIN_URL` (required): Gremlin Server websocket URL, e.g. `ws://janusgraph:8182/gremlin`
+- `THEO_HOST` (optional, default `0.0.0.0`)
+- `THEO_PORT` (optional, default `8000`)
+- `THEO_LOG_LEVEL` (optional, default `info`)
+
+See `.env.example`.
+
+## Run locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
+export THEO_API_KEY="dev-key"
+export GREMLIN_URL="ws://localhost:8182/gremlin"
+uvicorn theo_server.main:app --reload
+```
+
+## Run with Docker Compose
+
+1) Copy and edit env file:
+
+```bash
+cp .env.example .env
+```
+
+2) Start:
+
+```bash
+docker compose up --build
+```
+
+The API will be available at:
+
+- Swagger UI: `http://localhost:8000/docs`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
 
 ## API
 
-### Health
-GET `/health`
+All endpoints require header:
 
-### Get highest importIndex
-GET `/quotations/import-index/max`
+- `X-API-Key: <your key>`
+
+### Get highest import index
+
+`GET /v1/quotations/import-index/max`
 
 Response:
+
 ```json
 { "maxImportIndex": 123 }
 ```
 
-### Import a quotation (idempotent by importIndex)
-POST `/quotations/import`
+If there are no quotations yet, returns `-1`.
 
-Request:
+### Import quotation
+
+`POST /v1/quotations/import`
+
+Body:
+
 ```json
 {
-  "bookName": "The Great Book",
-  "bookCaption": "Optional caption",
-  "quotationCaption": "Optional caption",
-  "text": "Some quotation text",
-  "position": "epubcfi(/6/2[chapter1]!/4/1:0)",
-  "importIndex": 124
+  "caption": "Some title",
+  "text": "Quote text",
+  "book": "Book caption",
+  "position": "loc:1234",
+  "importIndex": 42,
+  "status": "new"
 }
 ```
 
-Response:
-```json
-{
-  "created": true,
-  "bookId": "1234",
-  "quotationId": "5678",
-  "importIndex": 124
-}
-```
+Responses:
 
-If the same `importIndex` already exists, it returns `created=false` and the existing quotation id.
+- `201 Created` with ids:
+  ```json
+  { "quotationId": "...", "bookId": "..." }
+  ```
+- `409 Conflict` if `importIndex` already exists.
 
-## Run locally (Docker)
+## License
 
-1. Copy env:
-   - `cp .env.example .env`
-
-2. Start:
-   - `docker compose up --build`
-
-3. Try:
-   - `curl http://localhost:8000/health`
-   - `curl http://localhost:8000/quotations/import-index/max`
-
-## Notes / production tips
-
-- Create a composite index on `quotation.importIndex` and `book.name` in JanusGraph for speed/uniqueness.
-- The compose file uses an in-memory JanusGraph config for development convenience.
-  For production, point `GREMLIN_URL` to your actual Gremlin Server and remove the `janusgraph` service.
+MIT (you can change as needed).
