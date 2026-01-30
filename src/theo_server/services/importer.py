@@ -19,11 +19,15 @@ class ImportService:
     def get_max_import_index(self) -> int:
         # Returns -1 if none exist.
         script = """
-            def m = g.V().has('type','quotation').values('importIndex').max().tryNext().orElse(null)
-            return m == null ? -1 : m
+            def m = g.V().has('type','quotation').values('importIndex').toList().max()
+            if (m) {
+                return [['importIndex': m]]
+            }
+
+            return [['importIndex': -1]]
         """.strip()
         res = self.gremlin.submit(script)
-        return int(res[0]) if res else -1
+        return int(res[0]["importIndex"]) if res else -1
 
     def import_quotation(
         self,
@@ -43,18 +47,18 @@ class ImportService:
         script = """
             def existing = g.V().has('type','quotation').has('importIndex', importIndex).limit(1).hasNext()
             if (existing) {
-                return [ok:false, reason:'exists']
+                return [['ok': false, 'reason': 'exists']]
             }
 
             def b = g.V().has('type','book').has('caption', bookCaption)
                 .fold()
                 .coalesce(
                     unfold(),
-                    addV().property('type','book').property('caption', bookCaption).property('name','')
+                    addV('book').property('type','book').property('caption', bookCaption).property('name','')
                 )
                 .next()
 
-            def q = g.addV()
+            def q = g.addV('quotation')
                 .property('type','quotation')
                 .property('caption', qCaption)
                 .property('text', qText)
@@ -66,7 +70,7 @@ class ImportService:
 
             b.addEdge('contains', q)
 
-            return [ok:true, quotationId: q.id().toString(), bookId: b.id().toString()]
+            return [[ok:true, quotationId: q.id().toString(), bookId: b.id().toString()]]
         """.strip()
 
         bindings = {

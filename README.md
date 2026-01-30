@@ -40,12 +40,13 @@ See `.env.example`.
 ## Run locally
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U pip
+python -m venv .venv   // create the virtual environment
+.venv/bin/Activate.ps1 // activate the virtual environment, depends on your OS
+python -m pip install --upgrade pip
 pip install -e .
-export THEO_API_KEY="dev-key"
-export GREMLIN_URL="ws://localhost:8182/gremlin"
+export THEO_API_KEY="dev-key" // or $env:THEO_API_KEY = "dev-key"
+export GREMLIN_URL="ws://localhost:8182/gremlin" // or $env:GREMLIN_URL  = "ws://localhost:8182/gremlin"
+
 uvicorn theo_server.main:app --reload
 ```
 
