@@ -3,9 +3,11 @@ services:
     build: .
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       THEO_API_KEY: ${THEO_API_KEY}
-      GREMLIN_URL: ${GREMLIN_URL}
+      GREMLIN_URL: ${GREMLIN_URL:-ws://host.docker.internal:8182/gremlin}
       THEO_HOST: ${THEO_HOST:-0.0.0.0}
       THEO_PORT: ${THEO_PORT:-8000}
       THEO_LOG_LEVEL: ${THEO_LOG_LEVEL:-info}
