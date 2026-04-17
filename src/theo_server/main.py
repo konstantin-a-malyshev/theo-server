@@ -9,7 +9,11 @@ from theo_server.services.importer import ImportService
 def create_app() -> FastAPI:
     app = FastAPI(title="theo-server", version="0.1.0")
 
-    gremlin = GremlinClient(settings.gremlin_url)
+    gremlin = GremlinClient(
+        url=settings.gremlin_url,
+        username=settings.gremlin_username,
+        password=settings.gremlin_password,
+    )
     import_service = ImportService(gremlin=gremlin)
 
     @app.on_event("shutdown")

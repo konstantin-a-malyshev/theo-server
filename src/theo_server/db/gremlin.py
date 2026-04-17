@@ -12,13 +12,22 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 class GremlinClient:
     url: str
     traversal_source: str = "g"
+    username: str | None = None
+    password: str | None = None
 
     def __post_init__(self) -> None:
         # GraphSON 3.0 works well with JanusGraph + TinkerPop 3.x
+        client_kwargs = {
+            "message_serializer": GraphSONSerializersV3d0(),
+        }
+        if self.username is not None and self.password is not None:
+            client_kwargs["username"] = self.username
+            client_kwargs["password"] = self.password
+        
         self._client = Client(
             self.url,
             self.traversal_source,
-            message_serializer=GraphSONSerializersV3d0(),
+            **client_kwargs,
         )
 
     def close(self) -> None:
