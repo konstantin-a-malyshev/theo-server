@@ -24,6 +24,8 @@ class GremlinClient:
             client_kwargs["username"] = self.username
             client_kwargs["password"] = self.password
         
+        print(f"Connecting to Gremlin server at {self.url} with username={self.username}")
+
         self._client = Client(
             self.url,
             self.traversal_source,
