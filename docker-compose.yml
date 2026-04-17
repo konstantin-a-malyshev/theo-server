@@ -8,6 +8,8 @@ services:
     environment:
       THEO_API_KEY: ${THEO_API_KEY}
       GREMLIN_URL: ${GREMLIN_URL:-ws://host.docker.internal:8182/gremlin}
+      GREMLIN_USERNAME: ${GREMLIN_USERNAME}
+      GREMLIN_PASSWORD: ${GREMLIN_PASSWORD}
       THEO_HOST: ${THEO_HOST:-0.0.0.0}
       THEO_PORT: ${THEO_PORT:-8000}
       THEO_LOG_LEVEL: ${THEO_LOG_LEVEL:-info}
